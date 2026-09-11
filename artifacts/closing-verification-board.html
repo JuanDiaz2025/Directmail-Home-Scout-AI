@@ -1,0 +1,1062 @@
+<title>Recorded or Not</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+  :root{
+    --void:#0A0C0F;
+    --panel:#14171C;
+    --panel2:#1B1F26;
+    --line:#2C333C;
+    --line2:#3B444F;
+    --paper:#F2F5F8;
+    --dim:#8B959F;
+    --dimmer:#5C656F;
+    --late:#FF3B30;
+    --late-ink:#1E1012;
+    --wait:#FFB400;
+    --good:#22C55E;
+    --act:#3B7BFF;
+    --heavy:"Anton","Arial Narrow",Impact,"Haettenschweiler",sans-serif;
+    --sans:"Archivo","Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--void);color:var(--paper);
+    font-family:var(--sans);font-size:15px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:0 96px}
+
+  /* ---------- top bar ---------- */
+  .bar{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding-block:16px 14px;border-bottom:3px solid var(--paper);
+  }
+  .brand{font-family:var(--heavy);font-size:32px;letter-spacing:.01em;line-height:1}
+  .brand span{color:var(--late)}
+  .you{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;
+    font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+  .you input{
+    font:inherit;font-size:14px;font-weight:500;letter-spacing:0;text-transform:none;
+    background:var(--panel);color:var(--paper);
+    border:2px solid var(--line);border-radius:0;padding:7px 10px;width:168px;
+  }
+  .you input:focus{border-color:var(--act);outline:none}
+
+  /* ---------- live strip ---------- */
+  .live{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:9px 0;border-bottom:1px solid var(--line);
+  }
+  .conn{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+  .dot{width:8px;height:8px;background:var(--dimmer);flex:none;border-radius:50%}
+  .conn[data-on="1"]{color:var(--good)}
+  .conn[data-on="1"] .dot{background:var(--good);animation:beat 2.4s ease-in-out infinite}
+  .conn[data-on="solo"]{color:var(--wait)}
+  .conn[data-on="solo"] .dot{background:var(--wait)}
+  @keyframes beat{0%,100%{opacity:1}50%{opacity:.3}}
+  @media (prefers-reduced-motion:reduce){.conn[data-on="1"] .dot{animation:none}}
+  .who{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-left:auto}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px 0 4px;
+    background:var(--panel);border:1px solid var(--line);
+    font-size:11.5px;font-weight:700;color:var(--paper);max-width:150px;
+  }
+  .chip i{
+    font-style:normal;width:18px;height:18px;display:grid;place-items:center;flex:none;
+    font-size:10px;font-weight:800;color:#0A0C0F;font-family:var(--sans);
+  }
+  .chip s{text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .chip.self{border-color:var(--line2)}
+  .chip.self s::after{content:" (you)";color:var(--dim);font-weight:600}
+
+  /* ---------- verdict ---------- */
+  .verdict{
+    font-family:var(--heavy);font-size:clamp(32px,7.2vw,62px);line-height:.94;
+    letter-spacing:.004em;margin:24px 0 6px;text-transform:uppercase;text-wrap:balance;
+  }
+  .verdict.hot{color:var(--late)}
+  .verdict.ok{color:var(--good)}
+  .vsub{color:var(--dim);font-size:14px;font-weight:600;margin:0 0 22px;max-width:62ch}
+
+  /* ---------- tiles ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px}
+  .tile{background:var(--panel);border-left:8px solid var(--line);padding:12px 14px 11px}
+  .tile b{display:block;font-family:var(--heavy);font-size:46px;line-height:.88;
+    font-variant-numeric:tabular-nums}
+  .tile em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;color:var(--dim)}
+  .tile.late{border-left-color:var(--late)} .tile.late b{color:var(--late)}
+  .tile.wait{border-left-color:var(--wait)} .tile.wait b{color:var(--wait)}
+  .tile.good{border-left-color:var(--good)} .tile.good b{color:var(--good)}
+
+  /* ---------- buttons ---------- */
+  button{font:inherit;cursor:pointer;border-radius:0}
+  .b{
+    background:var(--act);color:#fff;border:none;padding:11px 16px;
+    font-weight:800;font-size:13.5px;letter-spacing:.03em;text-transform:uppercase;
+  }
+  .b:hover{filter:brightness(1.14)}
+  .b.go{background:var(--good);color:#04220F}
+  .b.hot{background:var(--late);color:#fff}
+  .b.ghost{background:transparent;color:var(--paper);border:2px solid var(--line);padding:9px 14px}
+  .b.ghost:hover{border-color:var(--paper)}
+  .b.sm{padding:8px 12px;font-size:12px}
+  .b:disabled{opacity:.35;cursor:not-allowed;filter:none}
+  :focus-visible{outline:3px solid var(--act);outline-offset:2px}
+
+  .toprow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .tabs{display:flex;gap:3px;margin-left:auto;flex-wrap:wrap}
+  .tabs button{
+    background:transparent;border:2px solid transparent;color:var(--dim);
+    padding:8px 11px;font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+  }
+  .tabs button:hover{color:var(--paper)}
+  .tabs button[aria-pressed="true"]{background:var(--panel);border-color:var(--line);color:var(--paper)}
+  .tabs button b{font-variant-numeric:tabular-nums;color:var(--dimmer);margin-left:5px}
+  .tabs button[aria-pressed="true"] b{color:var(--dim)}
+
+  /* ---------- add panel ---------- */
+  .add{background:var(--panel);border-left:8px solid var(--act);padding:14px;margin-bottom:18px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:8px}
+  .f label{display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;
+    color:var(--dim);margin-bottom:5px;text-transform:uppercase}
+  .f input,.f select{
+    font:inherit;font-size:14px;width:100%;padding:9px 10px;
+    background:var(--panel2);color:var(--paper);border:2px solid var(--line);
+  }
+  .f input:focus,.f select:focus{border-color:var(--act);outline:none}
+  .f input[type=date]{font-family:var(--mono);font-size:13px}
+  .go-row{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  /* ---------- rows ---------- */
+  .row{background:var(--panel);border-left:8px solid var(--line);margin-bottom:8px}
+  .row[data-s="issue"]{border-left-color:var(--late);background:var(--late-ink)}
+  .row[data-s="funded"],.row[data-s="escrow"]{border-left-color:var(--wait)}
+  .row[data-s="recorded"]{border-left-color:var(--good)}
+  .row[data-s="closed"]{border-left-color:var(--good);opacity:.6}
+  .head{display:grid;grid-template-columns:1fr auto;gap:8px 16px;padding:14px;align-items:start}
+  .addr{font-family:var(--heavy);font-size:clamp(20px,3.3vw,29px);line-height:1.02;
+    text-transform:uppercase;text-wrap:balance}
+  .meta{color:var(--dim);font-size:12.5px;font-weight:600;margin-top:7px}
+  .meta b{color:var(--paper);font-weight:700}
+  .meta .d{font-family:var(--mono);font-size:12px;font-weight:500}
+  .flag{font-family:var(--heavy);font-size:18px;text-transform:uppercase;
+    white-space:nowrap;justify-self:end;line-height:1.05;text-align:right}
+  .flag[data-s="issue"]{color:var(--late)}
+  .flag[data-s="funded"],.flag[data-s="escrow"]{color:var(--wait)}
+  .flag[data-s="recorded"],.flag[data-s="closed"]{color:var(--good)}
+  .flag u{display:block;text-decoration:none;font-family:var(--mono);font-size:11px;
+    font-weight:700;letter-spacing:.04em;margin-top:4px}
+
+  .act{
+    display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;
+    padding:12px 14px 14px;border-top:2px solid var(--line);
+  }
+  .row[data-s="issue"] .act{border-top-color:#3A1F22}
+  .row[data-s="issue"] .f input,
+  .row[data-s="issue"] .f select{background:#241519;border-color:#3A1F22}
+  .row[data-s="issue"] .f input:focus,
+  .row[data-s="issue"] .f select:focus{border-color:var(--act)}
+  .row[data-s="issue"] .log li{border-bottom-color:#3A1F22}
+  .act .f{flex:1 1 132px;min-width:118px}
+  .act .f.narrow{flex:0 1 152px}
+  .act input.doc{font-family:var(--mono);font-weight:700;letter-spacing:.02em}
+  .warn{color:var(--late);font-weight:700;font-size:13px;padding:0 14px 12px;margin:0}
+  .stamped{
+    padding:12px 14px 14px;border-top:2px solid var(--line);
+    display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;
+  }
+  .stamped .num{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--good)}
+  .stamped small{display:block;width:100%;color:var(--dim);font-size:12px;font-weight:600;margin-top:2px}
+  .log{padding:0 14px 14px}
+  .log summary{cursor:pointer;color:var(--dim);font-size:11px;font-weight:800;
+    letter-spacing:.07em;text-transform:uppercase;padding:4px 0}
+  .log summary:hover{color:var(--paper)}
+  .log ol{list-style:none;margin:6px 0 0;padding:0;font-size:12.5px;color:var(--dim)}
+  .log li{padding:5px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
+  .log li time{font-family:var(--mono);font-size:11px;flex:none;color:var(--dimmer);padding-top:1px}
+  .rm{background:none;border:none;color:var(--dimmer);font-size:12px;font-weight:700;
+    padding:0;text-decoration:underline}
+  .rm:hover{color:var(--late)}
+
+  /* ---------- empty ---------- */
+  .empty{border:3px dashed var(--line);padding:34px 20px;text-align:center}
+  .empty h2{font-family:var(--heavy);font-size:clamp(22px,4.4vw,36px);
+    text-transform:uppercase;margin:0 0 8px;font-weight:400}
+  .empty p{color:var(--dim);font-size:14px;font-weight:600;margin:0 auto 20px;max-width:46ch}
+  .legend{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:22px 0 0}
+  .legend span{
+    font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+    border-left:5px solid var(--line);padding:5px 9px;background:var(--panel);color:var(--dim);
+  }
+  .legend span.l{border-left-color:var(--late);color:var(--late)}
+  .legend span.w{border-left-color:var(--wait);color:var(--wait)}
+  .legend span.g{border-left-color:var(--good);color:var(--good)}
+
+  .hidden{display:none!important}
+
+  /* ---------- toast + dialog ---------- */
+  .toasts{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:6px;align-items:center;z-index:60;width:min(92vw,520px)}
+  .toast{background:var(--paper);color:#0A0C0F;padding:11px 16px;font-weight:800;font-size:13.5px;
+    letter-spacing:.01em;box-shadow:0 6px 22px rgba(0,0,0,.5);max-width:100%}
+  .toast.peer{background:var(--act);color:#fff}
+  dialog.box{
+    border:3px solid var(--paper);background:var(--panel);color:var(--paper);
+    padding:0;max-width:min(94vw,560px);width:100%;
+  }
+  dialog.box::backdrop{background:rgba(6,8,10,.78)}
+  .box h3{font-family:var(--heavy);font-size:24px;text-transform:uppercase;margin:0;
+    padding:14px 16px;border-bottom:2px solid var(--line);font-weight:400}
+  .box textarea{
+    font:inherit;font-family:var(--mono);font-size:12.5px;line-height:1.6;width:100%;
+    min-height:168px;background:var(--panel2);color:var(--paper);border:none;
+    border-bottom:2px solid var(--line);padding:14px 16px;resize:vertical;display:block;
+  }
+  .box textarea:focus{outline:none;background:#20252D}
+  .box .go-row{margin:0;padding:12px 16px}
+
+  @media (max-width:620px){
+    .tiles{grid-template-columns:1fr 1fr}
+    .tiles .tile:last-child{grid-column:span 2}
+    .head{grid-template-columns:1fr}
+    .flag{justify-self:start;text-align:left}
+    .you{margin-left:0;width:100%}
+    .you input{flex:1;width:auto}
+    .who{margin-left:0;width:100%}
+    .tabs{margin-left:0;width:100%}
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="bar">
+    <div class="brand">RECORDED<span>?</span></div>
+    <div class="you">
+      <label for="me">You</label>
+      <input id="me" type="text" placeholder="your name" autocomplete="off" maxlength="28">
+    </div>
+  </header>
+
+  <div class="live">
+    <div class="conn" id="conn"><span class="dot"></span><span id="connText">Connecting</span></div>
+    <div class="who" id="who"></div>
+  </div>
+
+  <h1 class="verdict" id="verdict">Loading the board</h1>
+  <p class="vsub" id="vsub">Funded is not closed. Signed is not closed. Recorded is closed.</p>
+
+  <div class="tiles">
+    <div class="tile late"><b id="tLate">0</b><em>Late, not recorded</em></div>
+    <div class="tile wait"><b id="tWait">0</b><em>Waiting on recording</em></div>
+    <div class="tile good"><b id="tGood">0</b><em>Recorded</em></div>
+  </div>
+
+  <div class="toprow">
+    <button class="b" id="addBtn">+ Add closing</button>
+    <button class="b ghost" id="exportBtn">Export CSV</button>
+    <div class="tabs" id="tabs">
+      <button type="button" data-f="all" aria-pressed="true">All <b data-c="all">0</b></button>
+      <button type="button" data-f="hot" aria-pressed="false">Hot <b data-c="hot">0</b></button>
+      <button type="button" data-f="open" aria-pressed="false">Not recorded <b data-c="open">0</b></button>
+      <button type="button" data-f="done" aria-pressed="false">Recorded <b data-c="done">0</b></button>
+    </div>
+  </div>
+
+  <section class="add hidden" id="addPanel" aria-label="Add a closing">
+    <div class="grid">
+      <div class="f"><label for="n-addr">Address</label>
+        <input id="n-addr" placeholder="1420 Bayshore Ave" maxlength="90"></div>
+      <div class="f"><label for="n-owner">Owner (one name)</label>
+        <input id="n-owner" placeholder="who confirms it" maxlength="40"></div>
+      <div class="f"><label for="n-exp">Must record by</label>
+        <input id="n-exp" type="date"></div>
+      <div class="f"><label for="n-escrow">Title / escrow</label>
+        <input id="n-escrow" placeholder="optional" maxlength="60"></div>
+      <div class="f"><label for="n-side">Type</label>
+        <select id="n-side">
+          <option>Flip sale</option><option>Flip buy</option>
+          <option>Wholesale assignment</option><option>Wholesale double close</option>
+        </select></div>
+    </div>
+    <p class="warn hidden" id="addWarn" style="padding:10px 0 0"></p>
+    <div class="go-row">
+      <button class="b go" id="saveNew">Put it on the board</button>
+      <button class="b ghost" id="cancelNew">Cancel</button>
+    </div>
+  </section>
+
+  <div id="ledger"></div>
+
+  <section class="empty hidden" id="empty">
+    <h2>Nothing on the board</h2>
+    <p>Every open closing goes here with one owner and a hard recording date. Anyone on this link can add to it and confirm.</p>
+    <div class="go-row" style="justify-content:center">
+      <button class="b" id="emptyAdd">Add a closing</button>
+      <button class="b ghost" id="emptyDemo">Load example row</button>
+    </div>
+    <div class="legend">
+      <span class="l">Not recorded · late</span>
+      <span class="w">Funded, not recorded</span>
+      <span class="w">In escrow</span>
+      <span class="g">Recorded</span>
+      <span class="g">Closed</span>
+    </div>
+  </section>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog class="box" id="copyBox" aria-labelledby="copyTitle">
+  <h3 id="copyTitle">Copy this</h3>
+  <textarea id="copyText" readonly spellcheck="false"></textarea>
+  <div class="go-row">
+    <button class="b" id="copyAgain">Select all</button>
+    <button class="b ghost" id="copyClose">Close</button>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===================== constants ===================== */
+  var NAME_KEY = "recorded.me.v1";
+  var SOLO_KEY = "recorded.deals.v1";
+  var FLAG = {issue:"Not recorded", funded:"Funded, not recorded", escrow:"In escrow",
+              recorded:"Recorded", closed:"Closed"};
+  var RANK = {issue:0, funded:1, escrow:2, recorded:3, closed:4};
+  var SOURCES = ["recorded copy","title confirmation","escrow confirmation","county record"];
+  var INK = ["#FF6B5A","#FFB400","#22C55E","#3B7BFF","#C77DFF","#4DD9C0","#FF8FB1","#9EC5FF"];
+
+  /* ===================== state ===================== */
+  var deals  = new Map();   // id -> deal body
+  var drafts = new Map();   // id -> {doc,date,source} uncommitted keystrokes
+  var peers  = [];
+  var filter = "all";
+  var me     = readName();
+  var db = null, room = null, dl = null;
+  var live = false;         // db is answering
+  var connected = false;    // room is answering
+  var lastSig = null;
+
+  /* ===================== small helpers ===================== */
+  function byId(i){ return document.getElementById(i); }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function readName(){
+    try { return localStorage.getItem(NAME_KEY) || ""; } catch(e){ return ""; }
+  }
+  function writeName(v){
+    try { localStorage.setItem(NAME_KEY, v); } catch(e){}
+  }
+  function who(){ return me.trim() || "Someone"; }
+  function uid(){
+    return "d" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  }
+  function logKey(){
+    return String(Date.now()) + "-" + Math.random().toString(36).slice(2,7);
+  }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" +
+           String(d.getDate()).padStart(2,"0");
+  }
+  var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function fmtDate(iso){
+    if(!iso) return "—";
+    var p = String(iso).slice(0,10).split("-");
+    if(p.length < 3) return String(iso);
+    var s = MON[+p[1]-1] + " " + (+p[2]);
+    if(+p[0] !== new Date().getFullYear()) s += " " + p[0];
+    return s;
+  }
+  function fmtStamp(iso){
+    var d = new Date(iso);
+    if(isNaN(d)) return String(iso || "");
+    return fmtDate(String(iso).slice(0,10)) + " " +
+           d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  }
+  function daysLate(iso){
+    if(!iso) return 0;
+    return Math.round((new Date(todayISO()+"T00:00:00") - new Date(iso+"T00:00:00")) / 86400000);
+  }
+  function colorFor(name){
+    var s = String(name || "?"), h = 0;
+    for(var i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0;
+    return INK[h % INK.length];
+  }
+  function initials(name){
+    var parts = String(name || "?").trim().split(/\s+/).filter(Boolean);
+    if(!parts.length) return "?";
+    return (parts[0][0] + (parts[1] ? parts[1][0] : "")).toUpperCase();
+  }
+
+  /* ===================== toasts ===================== */
+  function toast(msg, peer){
+    var box = byId("toasts");
+    var t = document.createElement("div");
+    t.className = "toast" + (peer ? " peer" : "");
+    t.textContent = msg;
+    box.appendChild(t);
+    setTimeout(function(){ t.remove(); }, peer ? 4200 : 2800);
+    while(box.children.length > 4) box.removeChild(box.firstChild);
+  }
+
+  /* ===================== clipboard (with a real fallback) ===================== */
+  function copyOut(text, title){
+    var done = function(){ toast("Copied — send it"); };
+    var fail = function(){ showCopyBox(text, title); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done, fail);
+    } else {
+      fail();
+    }
+  }
+  function showCopyBox(text, title){
+    var d = byId("copyBox"), ta = byId("copyText");
+    byId("copyTitle").textContent = title || "Copy this";
+    ta.value = text;
+    if(typeof d.showModal === "function"){ d.showModal(); } else { d.setAttribute("open",""); }
+    ta.focus(); ta.select();
+  }
+
+  /* ===================== deal model ===================== */
+  function stateOf(d){
+    if(d.recorded) return (d.crm && d.notified) ? "closed" : "recorded";
+    if(d.expected && daysLate(d.expected) > 0) return "issue";
+    if(d.funded) return "funded";
+    return "escrow";
+  }
+  function inFilter(s, f){
+    if(f === "hot")  return s === "issue" || s === "funded";
+    if(f === "open") return s === "issue" || s === "funded" || s === "escrow";
+    if(f === "done") return s === "recorded" || s === "closed";
+    return true;
+  }
+  function sorted(){
+    var arr = [];
+    deals.forEach(function(d, id){ arr.push({id:id, d:d}); });
+    arr.sort(function(a,b){
+      var r = RANK[stateOf(a.d)] - RANK[stateOf(b.d)];
+      if(r) return r;
+      var ae = a.d.expected || "9999-99-99", be = b.d.expected || "9999-99-99";
+      if(ae !== be) return ae < be ? -1 : 1;
+      return (a.d.addr || "") < (b.d.addr || "") ? -1 : 1;
+    });
+    return arr;
+  }
+  function logLines(d){
+    var out = [];
+    var log = d.log || {};
+    Object.keys(log).forEach(function(k){
+      var e = log[k];
+      if(e && typeof e === "object") out.push(e);
+    });
+    out.sort(function(a,b){ return (a.at || "") < (b.at || "") ? 1 : -1; });
+    return out.slice(0, 40);
+  }
+
+  function closedText(d){
+    return "CLOSED — " + d.addr + ".\n" +
+      "Recorded " + fmtDate(d.recorded.date) + ", doc #" + d.recorded.doc + ".\n" +
+      "Confirmed by " + d.recorded.by + " (" + d.recorded.source + ")." +
+      (d.crm ? "\nCRM updated." : "");
+  }
+  function escalateText(d){
+    var n = daysLate(d.expected);
+    return "OPEN ISSUE — " + d.addr + ".\n" +
+      "Was due to record " + fmtDate(d.expected) + ". Still not recorded. " +
+      n + " day" + (n === 1 ? "" : "s") + " late.\n" +
+      "Owner: " + d.owner + (d.escrow ? " · " + d.escrow : "") + ".\n" +
+      "Today: " + d.owner + " gets written confirmation from title/escrow — a doc number " +
+      "or a new recording date. This is NOT closed.";
+  }
+
+  /* ===================== persistence ===================== */
+  function soloLoad(){
+    try {
+      var raw = localStorage.getItem(SOLO_KEY);
+      if(!raw) return;
+      var obj = JSON.parse(raw);
+      Object.keys(obj || {}).forEach(function(id){ deals.set(id, obj[id]); });
+    } catch(e){}
+  }
+  function soloSave(){
+    try {
+      var obj = {};
+      deals.forEach(function(d, id){ obj[id] = d; });
+      localStorage.setItem(SOLO_KEY, JSON.stringify(obj));
+    } catch(e){}
+  }
+  function mergeInto(target, patch){
+    Object.keys(patch).forEach(function(k){
+      var v = patch[k];
+      if(v && typeof v === "object" && !Array.isArray(v) &&
+         target[k] && typeof target[k] === "object" && !Array.isArray(target[k])){
+        mergeInto(target[k], v);
+      } else {
+        target[k] = v;
+      }
+    });
+    return target;
+  }
+  function writeFailed(e){
+    var code = e && e.code;
+    if(code === "revoked" || code === "not_granted"){
+      live = false; setConn();
+      toast("Read-only here — changes are not saving");
+    } else if(code === "quota_exceeded"){
+      toast("Board is full — remove closed rows first");
+    } else {
+      toast("That did not save — try again");
+    }
+  }
+
+  function createDeal(body){
+    var id = uid();
+    if(live){
+      db.collection("deals").doc(id).set(body).catch(writeFailed);
+    } else {
+      deals.set(id, body); soloSave(); render();
+    }
+    return id;
+  }
+  function patchDeal(id, patch){
+    if(live){
+      db.collection("deals").doc(id).update(patch).catch(writeFailed);
+    } else {
+      var d = deals.get(id);
+      if(d){ mergeInto(d, patch); soloSave(); render(); }
+    }
+  }
+  function dropDeal(id){
+    if(live){
+      db.collection("deals").doc(id)["delete"]().catch(writeFailed);
+    } else {
+      deals["delete"](id); soloSave(); render();
+    }
+  }
+  function entry(text){
+    var p = {log:{}};
+    p.log[logKey()] = {at:new Date().toISOString(), by:who(), text:text};
+    return p;
+  }
+
+  /* ===================== live announcements ===================== */
+  function announce(text){
+    if(!room) return;
+    room.emit("activity", {text:String(text).slice(0,140)}).catch(function(){});
+  }
+
+  /* ===================== rendering ===================== */
+  function captureFocus(){
+    var a = document.activeElement;
+    if(!a || !a.closest) return null;
+    var row = a.closest("#ledger [data-id]");
+    if(!row || !a.dataset || !a.dataset.f) return null;
+    var f = {id:row.dataset.id, key:a.dataset.f, s:null, e:null};
+    try { f.s = a.selectionStart; f.e = a.selectionEnd; } catch(err){}
+    return f;
+  }
+  function restoreFocus(f){
+    if(!f) return;
+    var row = byId("ledger").querySelector('[data-id="' + f.id.replace(/"/g,'') + '"]');
+    if(!row) return;
+    var el = row.querySelector('[data-f="' + f.key + '"]');
+    if(!el) return;
+    el.focus();
+    if(f.s != null && el.setSelectionRange){
+      try { el.setSelectionRange(f.s, f.e); } catch(err){}
+    }
+  }
+
+  function signature(){
+    var parts = [filter, me, live ? "1" : "0", connected ? "1" : "0",
+                 peers.map(function(p){ return p.peer + ":" + (p.presence && p.presence.name || ""); }).join(",")];
+    sorted().forEach(function(x){
+      var d = x.d;
+      parts.push([x.id, d.addr, d.owner, d.expected, d.escrow, d.side,
+                  d.funded ? 1 : 0, d.recorded ? JSON.stringify(d.recorded) : 0,
+                  d.crm ? 1 : 0, d.notified ? 1 : 0,
+                  Object.keys(d.log || {}).length].join("|"));
+    });
+    return parts.join("~");
+  }
+
+  function render(){
+    var sig = signature();
+    if(sig === lastSig) return;
+    lastSig = sig;
+
+    if(byId("me").value !== me) byId("me").value = me;
+
+    /* counts */
+    var L = 0, W = 0, G = 0, counts = {all:0, hot:0, open:0, done:0};
+    deals.forEach(function(d){
+      var s = stateOf(d);
+      if(s === "issue") L++; else if(s === "funded" || s === "escrow") W++; else G++;
+      counts.all++;
+      ["hot","open","done"].forEach(function(f){ if(inFilter(s, f)) counts[f]++; });
+    });
+    byId("tLate").textContent = L;
+    byId("tWait").textContent = W;
+    byId("tGood").textContent = G;
+    Object.keys(counts).forEach(function(f){
+      var el = byId("tabs").querySelector('[data-c="' + f + '"]');
+      if(el) el.textContent = counts[f];
+    });
+
+    /* verdict */
+    var v = byId("verdict"), sub = byId("vsub");
+    v.className = "verdict";
+    if(!deals.size){
+      v.textContent = "Nothing on the board";
+      sub.textContent = "Every open closing goes here with one owner and a hard date.";
+    } else if(L){
+      v.classList.add("hot");
+      v.textContent = L + " deal" + (L === 1 ? "" : "s") + " late and not recorded";
+      sub.textContent = "Escalate now. Nobody calls these closed.";
+    } else if(W){
+      v.textContent = W + " waiting on recording";
+      sub.textContent = "No doc number, no close. Nothing is late yet.";
+    } else {
+      v.classList.add("ok");
+      v.textContent = "All recorded";
+      sub.textContent = "Every deal on the board has a doc number and a name on it.";
+    }
+
+    /* rows */
+    var focus = captureFocus();
+    var arr = sorted().filter(function(x){ return inFilter(stateOf(x.d), filter); });
+    var html = "";
+    for(var i = 0; i < arr.length; i++) html += rowHTML(arr[i].id, arr[i].d);
+    if(deals.size && !arr.length){
+      html = '<div class="empty"><h2>Nothing in this view</h2>' +
+             '<p>No closing matches this filter right now.</p></div>';
+    }
+    byId("ledger").innerHTML = html;
+    byId("empty").classList.toggle("hidden", deals.size > 0);
+    restoreFocus(focus);
+
+    byId("exportBtn").disabled = !deals.size;
+    renderWho();
+  }
+
+  function rowHTML(id, d){
+    var s = stateOf(d);
+    var n = (s === "issue") ? daysLate(d.expected) : 0;
+    var draft = drafts.get(id) || {};
+
+    var meta = ['Owner <b>' + esc(d.owner) + '</b>'];
+    meta.push(d.recorded
+      ? 'Recorded <span class="d">' + esc(fmtDate(d.recorded.date)) + '</span>'
+      : 'Due <span class="d">' + esc(fmtDate(d.expected)) + '</span>');
+    if(d.escrow) meta.push(esc(d.escrow));
+    meta.push(esc(d.side));
+
+    var h = '<article class="row" data-s="' + s + '" data-id="' + esc(id) + '">';
+    h += '<div class="head"><div><div class="addr">' + esc(d.addr) + '</div>' +
+         '<div class="meta">' + meta.join(' &nbsp;·&nbsp; ') + '</div></div>' +
+         '<div class="flag" data-s="' + s + '">' + FLAG[s] +
+         (n > 0 ? '<u>' + n + ' day' + (n === 1 ? '' : 's') + ' late</u>' : '') +
+         '</div></div>';
+
+    if(!d.recorded){
+      h += '<div class="act">';
+      h += '<div class="f"><label for="doc-' + esc(id) + '">Doc / instrument #</label>' +
+           '<input class="doc" id="doc-' + esc(id) + '" data-f="doc" placeholder="2026-041877" ' +
+           'value="' + esc(draft.doc || "") + '" maxlength="32"></div>';
+      h += '<div class="f narrow"><label for="dt-' + esc(id) + '">Recorded on</label>' +
+           '<input type="date" id="dt-' + esc(id) + '" data-f="date" value="' +
+           esc(draft.date || todayISO()) + '"></div>';
+      h += '<div class="f narrow"><label for="src-' + esc(id) + '">Proof</label>' +
+           '<select id="src-' + esc(id) + '" data-f="source">';
+      SOURCES.forEach(function(o){
+        h += '<option' + ((draft.source === o) ? ' selected' : '') + '>' + o + '</option>';
+      });
+      h += '</select></div>';
+      h += '<button type="button" class="b go" data-act="record">Confirm recorded</button>';
+      if(!d.funded) h += '<button type="button" class="b ghost" data-act="funded">Funded</button>';
+      if(s === "issue") h += '<button type="button" class="b hot" data-act="esc">Escalate</button>';
+      h += '</div>';
+      h += '<p class="warn hidden" data-warn></p>';
+    } else {
+      h += '<div class="stamped">' +
+           '<span class="num">DOC #' + esc(d.recorded.doc) + '</span>' +
+           '<span class="num">' + esc(fmtDate(d.recorded.date)) + '</span>' +
+           '<small>Confirmed by ' + esc(d.recorded.by) + ' · ' + esc(d.recorded.source) +
+           ' · ' + esc(fmtStamp(d.recorded.at)) + '</small></div>';
+      h += '<div class="act">';
+      h += '<button type="button" class="b" data-act="copy">Copy team text</button>';
+      if(!d.crm) h += '<button type="button" class="b ghost" data-act="crm">CRM updated</button>';
+      if(!d.notified) h += '<button type="button" class="b ghost" data-act="notified">Team notified</button>';
+      h += '<button type="button" class="b ghost" data-act="correct">Wrong — reopen</button>';
+      h += '</div>';
+    }
+
+    var lines = logLines(d);
+    h += '<details class="log"><summary>Log · ' + lines.length + '</summary><ol>';
+    lines.forEach(function(e){
+      h += '<li><time>' + esc(fmtStamp(e.at)) + '</time><span>' + esc(e.text) + '</span></li>';
+    });
+    h += '</ol><p style="margin:10px 0 0"><button type="button" class="rm" data-act="rm">' +
+         'Remove from board</button></p></details>';
+    h += '</article>';
+    return h;
+  }
+
+  function renderWho(){
+    var box = byId("who");
+    var list = peers.slice().sort(function(a,b){ return (b.isMe ? 1 : 0) - (a.isMe ? 1 : 0); });
+    var html = "";
+    list.slice(0, 6).forEach(function(p){
+      var name = (p.presence && typeof p.presence.name === "string" && p.presence.name.trim())
+        ? p.presence.name.trim().slice(0, 24)
+        : (p.kind === "agent" ? "Claude" : "Unnamed");
+      var col = (p.presence && /^#[0-9a-f]{6}$/i.test(p.presence.color)) ? p.presence.color : colorFor(name);
+      html += '<span class="chip' + (p.isMe ? ' self' : '') + '" title="' + esc(name) + '">' +
+              '<i style="background:' + esc(col) + '">' + esc(initials(name)) + '</i>' +
+              '<s>' + esc(name) + '</s></span>';
+    });
+    if(list.length > 6) html += '<span class="chip"><s>+' + (list.length - 6) + ' more</s></span>';
+    box.innerHTML = html;
+  }
+
+  function setConn(){
+    var el = byId("conn"), txt = byId("connText");
+    if(live && connected){
+      el.setAttribute("data-on", "1");
+      var n = peers.length || 1;
+      txt.textContent = "Live · " + n + (n === 1 ? " person" : " people") + " on the board";
+    } else if(live){
+      el.setAttribute("data-on", "1");
+      txt.textContent = "Live · shared board";
+    } else {
+      el.setAttribute("data-on", "solo");
+      txt.textContent = "Solo · saved in this browser only";
+    }
+  }
+
+  /* ===================== actions ===================== */
+  function needMe(){
+    if(me.trim()) return true;
+    toast("Put your name in first");
+    byId("me").focus();
+    return false;
+  }
+
+  byId("ledger").addEventListener("input", function(e){
+    var t = e.target;
+    if(!t.dataset || !t.dataset.f) return;
+    var row = t.closest("[data-id]");
+    if(!row) return;
+    var d = drafts.get(row.dataset.id) || {};
+    d[t.dataset.f] = t.value;
+    drafts.set(row.dataset.id, d);
+  });
+  byId("ledger").addEventListener("change", function(e){
+    var t = e.target;
+    if(!t.dataset || !t.dataset.f) return;
+    var row = t.closest("[data-id]");
+    if(!row) return;
+    var d = drafts.get(row.dataset.id) || {};
+    d[t.dataset.f] = t.value;
+    drafts.set(row.dataset.id, d);
+  });
+
+  byId("ledger").addEventListener("click", function(e){
+    var btn = e.target.closest("[data-act]");
+    if(!btn) return;
+    var row = e.target.closest(".row");
+    if(!row) return;
+    var id = row.dataset.id, d = deals.get(id);
+    if(!d) return;
+    var a = btn.dataset.act;
+
+    if(a === "funded"){
+      if(!needMe()) return;
+      patchDeal(id, mergeInto({funded:{at:new Date().toISOString(), by:who()}},
+        entry("Funded, confirmed by " + who() + ". Recording still unconfirmed.")));
+      announce(who() + " marked " + d.addr + " funded");
+      return;
+    }
+
+    if(a === "record"){
+      if(!needMe()) return;
+      var strip = row.querySelector(".act");
+      var doc = strip.querySelector('[data-f="doc"]').value.trim();
+      var dt  = strip.querySelector('[data-f="date"]').value;
+      var src = strip.querySelector('[data-f="source"]').value;
+      var warn = row.querySelector("[data-warn]");
+      if(!doc || !dt){
+        warn.textContent = "No doc number, no close. Enter the instrument number and the recording date.";
+        warn.classList.remove("hidden");
+        (doc ? strip.querySelector('[data-f="date"]') : strip.querySelector('[data-f="doc"]')).focus();
+        return;
+      }
+      var patch = {recorded:{at:new Date().toISOString(), by:who(), doc:doc, date:dt, source:src}};
+      if(!d.funded) patch.funded = {at:new Date().toISOString(), by:who()};
+      mergeInto(patch, entry("RECORDED — doc #" + doc + " on " + fmtDate(dt) +
+        ", confirmed by " + who() + " (" + src + ")."));
+      patchDeal(id, patch);
+      drafts["delete"](id);
+      announce(who() + " recorded " + d.addr + " · doc #" + doc);
+      toast("Recorded — now tell the team");
+      return;
+    }
+
+    if(a === "correct"){
+      if(!needMe()) return;
+      if(!confirm("Reopen " + d.addr + "? The doc number comes off the board and everyone sees it as not recorded again.")) return;
+      patchDeal(id, mergeInto({recorded:null, crm:null, notified:null},
+        entry("Recording entry pulled by " + who() + " — needs re-verification.")));
+      announce(who() + " reopened " + d.addr);
+      return;
+    }
+
+    if(a === "crm"){
+      if(!needMe()) return;
+      patchDeal(id, mergeInto({crm:{at:new Date().toISOString(), by:who()}},
+        entry("CRM updated by " + who() + ".")));
+      return;
+    }
+
+    if(a === "notified"){
+      if(!needMe()) return;
+      patchDeal(id, mergeInto({notified:{at:new Date().toISOString(), by:who()}},
+        entry("Team notified by " + who() + ".")));
+      return;
+    }
+
+    if(a === "copy"){
+      copyOut(closedText(d), "Closed — " + d.addr);
+      return;
+    }
+
+    if(a === "esc"){
+      copyOut(escalateText(d), "Escalate — " + d.addr);
+      patchDeal(id, entry("Escalated by " + who() + "."));
+      announce(who() + " escalated " + d.addr);
+      return;
+    }
+
+    if(a === "rm"){
+      if(!confirm("Remove " + d.addr + " from the board for everyone? The log goes with it.")) return;
+      dropDeal(id);
+      announce(who() + " removed " + d.addr);
+      return;
+    }
+  });
+
+  /* name */
+  byId("me").addEventListener("input", function(e){
+    me = e.target.value;
+    writeName(me);
+    pushPresence();
+    lastSig = null;
+  });
+
+  /* add panel */
+  function showAdd(v){
+    byId("addPanel").classList.toggle("hidden", !v);
+    if(v) byId("n-addr").focus();
+    else byId("addWarn").classList.add("hidden");
+  }
+  byId("addBtn").addEventListener("click", function(){ showAdd(true); });
+  byId("emptyAdd").addEventListener("click", function(){ showAdd(true); });
+  byId("cancelNew").addEventListener("click", function(){ showAdd(false); });
+
+  byId("saveNew").addEventListener("click", function(){
+    var f = {
+      addr:   byId("n-addr").value.trim(),
+      owner:  byId("n-owner").value.trim(),
+      expected: byId("n-exp").value,
+      escrow: byId("n-escrow").value.trim(),
+      side:   byId("n-side").value
+    };
+    var w = byId("addWarn");
+    if(!f.addr || !f.owner || !f.expected){
+      w.textContent = "Address, one owner, and a must-record-by date. The date is what turns the row red.";
+      w.classList.remove("hidden");
+      byId(!f.addr ? "n-addr" : (!f.owner ? "n-owner" : "n-exp")).focus();
+      return;
+    }
+    w.classList.add("hidden");
+    var now = new Date().toISOString();
+    var body = {
+      addr:f.addr, owner:f.owner, expected:f.expected, escrow:f.escrow, side:f.side,
+      createdAt:now, createdBy:who(),
+      funded:null, recorded:null, crm:null, notified:null, log:{}
+    };
+    body.log[logKey()] = {at:now, by:who(),
+      text:"On the board. Owner: " + f.owner + ". Must record by " + fmtDate(f.expected) + "."};
+    createDeal(body);
+    ["n-addr","n-owner","n-exp","n-escrow"].forEach(function(i){ byId(i).value = ""; });
+    showAdd(false);
+    announce(who() + " added " + f.addr);
+  });
+
+  byId("emptyDemo").addEventListener("click", function(){
+    var back = new Date(Date.now() - 4*86400000).toISOString();
+    var body = {
+      addr:"1420 Bayshore Ave, San Mateo", owner:"Cherry", expected:back.slice(0,10),
+      escrow:"Old Republic Title", side:"Flip sale",
+      createdAt:back, createdBy:"Example",
+      funded:{at:back, by:"Cherry"}, recorded:null, crm:null, notified:null, log:{}
+    };
+    body.log[logKey()] = {at:back, by:"Example",
+      text:"Example row. On the board. Owner: Cherry. Must record by " + fmtDate(back.slice(0,10)) + "."};
+    body.log[logKey()] = {at:back, by:"Cherry",
+      text:"Funded, confirmed by Cherry. Recording still unconfirmed."};
+    createDeal(body);
+    toast("Example row added — remove it when you are done");
+  });
+
+  /* tabs */
+  byId("tabs").addEventListener("click", function(e){
+    var b = e.target.closest("button[data-f]");
+    if(!b) return;
+    filter = b.dataset.f;
+    Array.prototype.forEach.call(this.querySelectorAll("button[data-f]"), function(x){
+      x.setAttribute("aria-pressed", String(x === b));
+    });
+    lastSig = null;
+    render();
+  });
+
+  /* export */
+  function csv(){
+    var head = ["Address","Owner","Type","Title/Escrow","Must record by","Status",
+                "Days late","Doc number","Recorded on","Confirmed by","Proof","CRM","Team notified"];
+    var q = function(v){ return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"'; };
+    var rows = [head.map(q).join(",")];
+    sorted().forEach(function(x){
+      var d = x.d, s = stateOf(d);
+      rows.push([
+        d.addr, d.owner, d.side, d.escrow || "", d.expected, FLAG[s],
+        s === "issue" ? daysLate(d.expected) : 0,
+        d.recorded ? d.recorded.doc : "",
+        d.recorded ? d.recorded.date : "",
+        d.recorded ? d.recorded.by : "",
+        d.recorded ? d.recorded.source : "",
+        d.crm ? "yes" : "no",
+        d.notified ? "yes" : "no"
+      ].map(q).join(","));
+    });
+    return rows.join("\r\n");
+  }
+  byId("exportBtn").addEventListener("click", function(){
+    if(!deals.size){ toast("Nothing to export yet"); return; }
+    var text = csv();
+    var name = "recording-board-" + todayISO() + ".csv";
+    if(dl){
+      dl.save({filename:name, data:text}).then(function(){
+        toast("Saved " + name);
+      }, function(err){
+        if(err && err.code === "declined") return;
+        showCopyBox(text, "CSV — copy it out");
+      });
+    } else {
+      showCopyBox(text, "CSV — copy it out");
+    }
+  });
+
+  /* copy dialog */
+  byId("copyClose").addEventListener("click", function(){
+    var d = byId("copyBox");
+    if(typeof d.close === "function") d.close(); else d.removeAttribute("open");
+  });
+  byId("copyAgain").addEventListener("click", function(){
+    var ta = byId("copyText");
+    ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch(e){}
+    toast(ok ? "Copied — send it" : "Selected — press Ctrl/Cmd + C");
+  });
+
+  /* ===================== wiring the room ===================== */
+  function pushPresence(){
+    if(!room) return;
+    room.presence({
+      name: me.trim().slice(0, 24) || null,
+      color: colorFor(me.trim() || "anon")
+    }).catch(function(){});
+  }
+
+  /* ===================== boot ===================== */
+  byId("me").value = me;
+  soloLoad();
+  setConn();
+  render();
+
+  if(window.claude && typeof window.claude.use === "function"){
+    window.claude.use("db").then(function(store){
+      if(!store) return;
+      db = store;
+      var first = true;
+      db.collection("deals").onSnapshot(function(snap){
+        live = true;
+        var next = new Map();
+        snap.docs.forEach(function(doc){
+          var body = doc.data();
+          if(body) next.set(doc.id, body);
+        });
+        if(first && deals.size && !next.size){
+          /* carry a solo board into the shared one on the first live load */
+          first = false;
+          deals.forEach(function(body, id){
+            db.collection("deals").doc(id).set(body).catch(function(){});
+          });
+          try { localStorage.removeItem(SOLO_KEY); } catch(e){}
+          toast("Moved your local board onto the shared one");
+          setConn();
+          return;
+        }
+        first = false;
+        deals = next;
+        lastSig = null;
+        setConn();
+        render();
+      }, function(err){
+        live = false;
+        setConn();
+        if(err && err.code !== "revoked") toast("Live board dropped — working solo");
+        lastSig = null;
+        render();
+      });
+    });
+
+    window.claude.use("room").then(function(r){
+      if(!r) return;
+      room = r;
+      pushPresence();
+      room.onPeers(function(change){
+        peers = change.peers;
+        lastSig = null;
+        setConn();
+        renderWho();
+      }, function(){});
+      room.onConnection(function(on){
+        connected = on;
+        setConn();
+      }, function(){});
+      room.on("activity", function(msg){
+        if(msg.isMe) return;
+        var text = msg.data && typeof msg.data.text === "string" ? msg.data.text : "";
+        if(text) toast(text.slice(0, 140), true);
+      }, function(){});
+    });
+
+    window.claude.use("downloads").then(function(d){ dl = d || null; });
+  }
+
+  /* keep "days late" honest across a long-open tab */
+  setInterval(function(){ lastSig = null; render(); }, 60000);
+})();
+</script>
