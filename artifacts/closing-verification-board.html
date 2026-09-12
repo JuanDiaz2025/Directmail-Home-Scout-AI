@@ -356,7 +356,9 @@
   };
   var LEADS = ["PPC — Google Ads","DM — Post Card","SEO","Property leads","MLS / Redfin",
                "Cold call","Referral","Other"];
-  var EXITS = ["Wholesale","Wholetail","Flip","Wholetail / Flip","Rental","Undecided"];
+  var EXITS = ["Wholesale- Assignment","Wholesale- Double Close",
+               "Buy- Wholetail","Buy- Fix & Flip",
+               "Sale- Wholetail","Sale- Fix & Flip"];
   var SOURCES = ["Select proof type","Recorded copy","Title confirmation",
                  "Escrow confirmation","County record"];
   var INK = ["#FF6B5A","#FFB400","#22C55E","#3B7BFF","#C77DFF","#4DD9C0","#FF8FB1","#9EC5FF"];
@@ -438,6 +440,21 @@
     var p = String(name || "?").trim().split(/\s+/).filter(Boolean);
     return p.length ? (p[0][0] + (p[1] ? p[1][0] : "")).toUpperCase() : "?";
   }
+  /* Exit strategies changed vocabulary; a plain select would snap an older
+     value onto its first option, so carry any unrecognised value as its own
+     option until a person picks a replacement. */
+  function exitOptions(cur){
+    var h = '<option value=""' + (cur ? '' : ' selected') + '>— select —</option>';
+    if(cur && EXITS.indexOf(cur) < 0){
+      h += '<option value="' + esc(cur) + '" selected>' + esc(cur) + ' (old)</option>';
+    }
+    EXITS.forEach(function(o){
+      h += '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') +
+           '>' + esc(o) + '</option>';
+    });
+    return h;
+  }
+
   function options(list, chosen){
     return list.map(function(o){
       return '<option' + (o === chosen ? ' selected' : '') + '>' + esc(o) + '</option>';
@@ -836,7 +853,7 @@
          (bd === "acq"
            ? '<div class="f"><label for="ex-' + esc(id) + '">Exit strategy</label>' +
              '<select id="ex-' + esc(id) + '" data-f="exit" data-act="exit">' +
-             options(EXITS, d.exit || EXITS[0]) + '</select></div>'
+             exitOptions(d.exit || "") + '</select></div>'
            : '<div class="f"><label for="sp-' + esc(id) + '">Sale price</label>' +
              '<input id="sp-' + esc(id) + '" inputmode="numeric" data-f="salePrice" data-act="salePrice" ' +
              'placeholder="0" value="' + esc(num(d.salePrice) == null ? "" : num(d.salePrice)) + '"></div>') +
@@ -989,11 +1006,12 @@
       if(cur === val) return;
       var patch = {};
       patch[key] = val;
+      var shown = key === "closingDate" ? fmtDate(val) : val;
       patchDeal(id, mergeInto(patch,
-        entry(INLINE[key] + " set to " + (key === "closingDate" ? fmtDate(val) : val) +
-              " by " + who() + ".")));
-      announce(who() + " — " + d.addr + ": " + INLINE[key] + " " +
-               (key === "closingDate" ? fmtDate(val) : val));
+        entry(shown
+          ? INLINE[key] + " set to " + shown + " by " + who() + "."
+          : INLINE[key] + " cleared by " + who() + ".")));
+      if(shown) announce(who() + " — " + d.addr + ": " + INLINE[key] + " " + shown);
     }
   });
 
@@ -1039,7 +1057,6 @@
           patch.revenue = num(d.salePrice) - num(d.purchasePrice);
         }
       }
-      if(to === "dispo" && bd === "acq" && !d.exit) patch.exit = EXITS[0];
       patchDeal(id, mergeInto(patch,
         entry("Moved to " + BOARD_NAME[to] + " by " + who() + ".")));
       announce(who() + " moved " + d.addr + " to " + BOARD_NAME[to]);
@@ -1124,7 +1141,7 @@
 
   /* add panel */
   byId("n-lead").innerHTML = options(LEADS, LEADS[0]);
-  byId("n-exit").innerHTML = options(EXITS, EXITS[0]);
+  byId("n-exit").innerHTML = exitOptions("");
   function syncStatusChoices(){
     byId("n-status").innerHTML = options(STATUS[board], STATUS[board][0]);
     byId("n-sale").closest(".f").classList.toggle("hidden", board === "acq");
