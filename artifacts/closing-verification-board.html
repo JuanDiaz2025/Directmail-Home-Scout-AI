@@ -184,9 +184,24 @@
     letter-spacing:.07em;text-transform:uppercase;padding:4px 0}
   .log summary:hover{color:var(--paper)}
   .log ol{list-style:none;margin:6px 0 0;padding:0;font-size:12.5px;color:var(--dim)}
-  .log li{padding:5px 0;border-bottom:1px solid var(--line);display:flex;gap:10px}
+  .log li{padding:7px 0;border-bottom:1px solid var(--line);
+    display:grid;grid-template-columns:auto 1fr auto;gap:4px 12px;align-items:baseline}
   .row[data-tone="red"] .log li{border-bottom-color:#3A1F22}
-  .log li time{font-family:var(--mono);font-size:11px;flex:none;color:var(--dimmer);padding-top:1px}
+  .log li b.au{font-size:12px;font-weight:800;white-space:nowrap;letter-spacing:.01em}
+  .log li .tx{color:var(--paper);font-weight:500}
+  .log li.sys .tx{color:var(--dim);font-weight:600}
+  .log li time{font-family:var(--mono);font-size:11px;color:var(--dimmer);
+    white-space:nowrap;text-align:right}
+  .post{display:flex;gap:8px;margin-top:12px}
+  .post input{flex:1 1 auto;min-width:0;font:inherit;font-size:13.5px;padding:10px 12px;
+    background:var(--panel2);color:var(--paper);border:2px solid var(--line)}
+  .post input::placeholder{color:var(--dimmer)}
+  .post input:focus{border-color:var(--act);outline:none}
+  .post button{flex:none;background:var(--act);color:#fff;border:none;padding:10px 18px;
+    font-weight:800;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase}
+  .post button:hover{filter:brightness(1.14)}
+  .row[data-tone="red"] .post input{background:#241519;border-color:#3A1F22}
+  .row[data-tone="red"] .post input:focus{border-color:var(--act)}
   .follow{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
   .tag{background:transparent;border:1px solid var(--line);color:var(--dim);
     font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:6px 10px}
@@ -220,6 +235,8 @@
   .box .go-row{margin:0;padding:12px 16px}
 
   @media (max-width:620px){
+    .log li{grid-template-columns:1fr auto}
+    .log li .tx{grid-column:1 / -1}
     .head{grid-template-columns:1fr}
     .flag{justify-self:start;text-align:left}
     .you{margin-left:0;width:100%}
@@ -860,9 +877,19 @@
     h += '<details class="log"' + (opened.has(id) ? ' open' : '') +
          '><summary>Coordination log · ' + lines.length + '</summary><ol>';
     lines.forEach(function(e){
-      h += '<li><time>' + esc(fmtStamp(e.at)) + '</time><span>' + esc(e.text) + '</span></li>';
+      var author = e.by || "System";
+      h += '<li class="' + (e.kind === "note" ? "note" : "sys") + '">' +
+           '<b class="au" style="color:' + esc(colorFor(author)) + '">' + esc(author) + '</b>' +
+           '<span class="tx">' + esc(e.text) + '</span>' +
+           '<time>' + esc(fmtStamp(e.at)) + '</time></li>';
     });
-    h += '</ol><div class="follow">' +
+    h += '</ol>';
+    h += '<div class="post">' +
+         '<input id="note-' + esc(id) + '" data-f="note" maxlength="240" ' +
+         'placeholder="Add an update everyone can see…" aria-label="Add an update" value="' +
+         esc(draft.note || "") + '">' +
+         '<button type="button" data-act="note">Post</button></div>';
+    h += '<div class="follow">' +
          '<button type="button" class="tag" data-act="crm" aria-pressed="' + (d.crm?"true":"false") +
          '">CRM updated' + (d.crm ? " ✓" : "") + '</button>' +
          '<button type="button" class="tag" data-act="notified" aria-pressed="' +
@@ -931,6 +958,14 @@
     drafts.set(row.dataset.id, d);
   }
   byId("ledger").addEventListener("input", noteDraft);
+
+  byId("ledger").addEventListener("keydown", function(e){
+    if(e.key !== "Enter" || !e.target.dataset || e.target.dataset.f !== "note") return;
+    e.preventDefault();
+    var row = e.target.closest("[data-id]");
+    var btn = row && row.querySelector('[data-act="note"]');
+    if(btn) btn.click();
+  });
 
   byId("ledger").addEventListener("change", function(e){
     var t = e.target;
@@ -1037,6 +1072,24 @@
             entry("Team notified by " + who() + ".")));
       return;
     }
+    if(a === "note"){
+      if(!needMe()) return;
+      var box = row.querySelector('[data-f="note"]');
+      var text = box.value.trim();
+      if(!text){ box.focus(); return; }
+      var np = {log:{}};
+      np.log[logKey()] = {at:new Date().toISOString(), by:who(), text:text, kind:"note"};
+      /* clear the draft BEFORE the write — patchDeal can re-render synchronously */
+      var dr = drafts.get(id) || {};
+      dr.note = "";
+      drafts.set(id, dr);
+      opened.add(id);
+      box.value = "";
+      patchDeal(id, np);
+      announce(who() + " on " + d.addr + ": " + text);
+      return;
+    }
+
     if(a === "copy"){ copyOut(summaryText(d), d.addr); return; }
     if(a === "esc"){
       copyOut(escalateText(d), "Escalate — " + d.addr);
