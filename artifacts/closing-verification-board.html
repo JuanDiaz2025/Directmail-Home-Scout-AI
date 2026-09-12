@@ -175,7 +175,15 @@
   .btns .b.mid{flex:0 1 200px}
   .warn{color:var(--late);font-weight:700;font-size:13px;margin:0}
   .stamp{font-family:var(--mono);font-size:12.5px;font-weight:500;color:var(--good);
-    border-left:3px solid var(--good);padding-left:10px}
+    border-left:3px solid var(--good);padding-left:10px;margin:0}
+  .stamp b{font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;margin-right:8px}
+  .recgrp{border-left:3px solid var(--line);padding-left:10px}
+  .recgrp[data-done="1"]{border-left-color:var(--good)}
+  .recgrp-h{display:flex;align-items:baseline;gap:8px;margin-bottom:7px;
+    font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--paper)}
+  .recgrp-h i{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.05em;color:var(--good)}
+  .recgrp-h i.pending{color:var(--dimmer)}
   .stamp small{display:block;color:var(--dim);font-family:var(--sans);font-size:12px;
     font-weight:600;margin-top:2px}
 
@@ -359,6 +367,7 @@
   var EXITS = ["Wholesale- Assignment","Wholesale- Double Close",
                "Buy- Wholetail","Buy- Fix & Flip",
                "Sale- Wholetail","Sale- Fix & Flip"];
+  var SIDES = [{key:"buyer", name:"Buyer"}, {key:"seller", name:"Seller"}];
   var SOURCES = ["Select proof type","Recorded copy","Title confirmation",
                  "Escrow confirmation","County record"];
   var INK = ["#FF6B5A","#FFB400","#22C55E","#3B7BFF","#C77DFF","#4DD9C0","#FF8FB1","#9EC5FF"];
@@ -490,6 +499,17 @@
 
   /* ===================== model ===================== */
   function boardOf(d){ return BOARDS.indexOf(d.board) >= 0 ? d.board : "acq"; }
+  /* Two deeds record on a deal: the seller's side (title in) and the
+     buyer's side (title out). Older rows stored a single flat entry —
+     read that as the buyer side so nothing is lost. */
+  function rec(d, side){
+    var r = d.recorded;
+    if(!r) return null;
+    if(r.doc) return side === "buyer" ? r : null;
+    return r[side] && r[side].doc ? r[side] : null;
+  }
+  function anyRec(d){ return !!(rec(d,"buyer") || rec(d,"seller")); }
+  function bothRec(d){ return !!(rec(d,"buyer") && rec(d,"seller")); }
   function statusOf(d){
     var list = STATUS[boardOf(d)];
     return list.indexOf(d.status) >= 0 ? d.status : list[0];
@@ -501,28 +521,33 @@
     return s === "Acquired" || s === "Wholesaled" || s === "Sold" || s === "Closed";
   }
   function overdue(d){
-    if(isDone(d) || isDead(d) || d.recorded) return false;
+    if(isDone(d) || isDead(d) || anyRec(d)) return false;
     var n = daysToClose(d);
     return n != null && n < 0;
   }
+  /* Colour follows the status the team set. Being past the closing date
+     paints the row red as a warning, but it never renames the status. */
   function toneOf(d){
     if(overdue(d)) return "red";
-    if(d.recorded || isDone(d)) return "green";
     var base = TONE[statusOf(d)] || "blue";
-    if(base === "grey") return "grey";
+    if(base === "green" || base === "grey") return base;
     var n = daysToClose(d);
     if(n != null && n >= 0 && n <= RISK_WINDOW) return "amber";
     return base;
   }
+  /* The headline on a row is ALWAYS the status from its dropdown — nothing
+     else (a recording, a sale price, a passed date) overwrites it. Timing
+     goes on the second line, where it informs without relabelling. */
   function flagOf(d){
-    if(overdue(d)) return {text:"Past closing", sub:plural(-daysToClose(d), "day") + " overdue"};
-    if(d.recorded) return {text:"Recorded", sub:"Doc #" + d.recorded.doc};
-    if(isDead(d)) return {text:"Cancelled", sub:"Off the goal"};
-    if(isDone(d)) return {text:statusOf(d), sub:d.closingDate ? fmtDate(d.closingDate) : "No date"};
-    var n = daysToClose(d);
-    if(n == null) return {text:statusOf(d), sub:"No closing date"};
-    if(n === 0)   return {text:statusOf(d), sub:"Closes today"};
-    return {text:statusOf(d), sub:plural(n, "day") + " to close"};
+    var s = statusOf(d), n = daysToClose(d), sub;
+    if(isDead(d))              sub = "Off the goal";
+    else if(overdue(d))        sub = plural(-n, "day") + " past closing";
+    else if(isDone(d))         sub = d.closingDate ? fmtDate(d.closingDate) : "No closing date";
+    else if(n == null)         sub = "No closing date";
+    else if(n < 0)             sub = plural(-n, "day") + " past closing";
+    else if(n === 0)           sub = "Closes today";
+    else                       sub = plural(n, "day") + " to close";
+    return {text:s, sub:sub};
   }
   function onBoard(b){
     var arr = [];
@@ -554,12 +579,13 @@
     if(num(d.revenue) != null)       L.push("Projected revenue: " + money(num(d.revenue)));
     if(d.exit)   L.push("Exit: " + d.exit);
     if(d.owner)  L.push("Owner: " + d.owner + (d.escrow ? " · " + d.escrow : ""));
-    if(d.recorded){
-      L.push("RECORDED — doc #" + d.recorded.doc + " on " + fmtDate(d.recorded.date) +
-             ", confirmed by " + d.recorded.by + " (" + d.recorded.source + ").");
-    } else {
-      L.push("NOT RECORDED. No doc number on this one yet.");
-    }
+    ["buyer","seller"].forEach(function(side){
+      var r = rec(d, side), name = side === "buyer" ? "Buyer" : "Seller";
+      L.push(r
+        ? name + " document: #" + r.doc + " recorded " + fmtDate(r.date) +
+          ", confirmed by " + r.by + " (" + r.source + ")."
+        : name + " document: NOT RECORDED — no doc number yet.");
+    });
     return L.join("\n");
   }
   function escalateText(d){
@@ -787,7 +813,7 @@
   function passFilter(d){
     if(filter === "all") return true;
     if(filter === "overdue") return overdue(d);
-    if(filter === "unrecorded") return !d.recorded;
+    if(filter === "unrecorded") return !bothRec(d);
     return statusOf(d) === filter;
   }
   function renderFilters(){
@@ -797,7 +823,7 @@
       counts.all = (counts.all || 0) + 1;
       counts[statusOf(d)] = (counts[statusOf(d)] || 0) + 1;
       if(overdue(d)) counts.overdue = (counts.overdue || 0) + 1;
-      if(!d.recorded) counts.unrecorded = (counts.unrecorded || 0) + 1;
+      if(!bothRec(d)) counts.unrecorded = (counts.unrecorded || 0) + 1;
     });
     byId("filters").innerHTML = filterList().map(function(f){
       return '<button type="button" data-f="' + esc(f.k) + '" aria-pressed="' +
@@ -817,6 +843,7 @@
       h += stat("Closing date", fmtDate(d.closingDate));
       h += stat("Exit strategy", d.exit || "");
     } else if(b === "dispo"){
+      h += stat("Exit strategy", d.exit || "");
       h += stat("Closing date", fmtDate(d.closingDate));
       h += stat("Sale price", money(num(d.salePrice)), "money");
     } else {
@@ -853,40 +880,50 @@
          '<div class="f"><label for="cd-' + esc(id) + '">Closing date</label>' +
          '<input type="date" id="cd-' + esc(id) + '" data-f="closingDate" data-act="closingDate" value="' +
          esc(d.closingDate || "") + '"></div>' +
-         (bd === "acq"
-           ? '<div class="f"><label for="ex-' + esc(id) + '">Exit strategy</label>' +
-             '<select id="ex-' + esc(id) + '" data-f="exit" data-act="exit">' +
-             exitOptions(d.exit || "") + '</select></div>'
+         '<div class="f"><label for="ex-' + esc(id) + '">Exit strategy</label>' +
+         '<select id="ex-' + esc(id) + '" data-f="exit" data-act="exit">' +
+         exitOptions(d.exit || "") + '</select></div>' +
+         (bd === "acq" ? ""
            : '<div class="f"><label for="sp-' + esc(id) + '">Sale price</label>' +
              '<input id="sp-' + esc(id) + '" inputmode="numeric" data-f="salePrice" data-act="salePrice" ' +
              'placeholder="0" value="' + esc(num(d.salePrice) == null ? "" : num(d.salePrice)) + '"></div>') +
          '</div>';
 
-    if(d.recorded){
-      h += '<p class="stamp">DOC #' + esc(d.recorded.doc) + ' · ' + esc(fmtDate(d.recorded.date)) +
-           '<small>Confirmed by ' + esc(d.recorded.by) + ' · ' + esc(d.recorded.source) +
-           ' · ' + esc(fmtStamp(d.recorded.at)) + '</small></p>';
-    }
+    SIDES.forEach(function(side){
+      var r = rec(d, side.key);
+      if(!r) return;
+      h += '<p class="stamp"><b>' + esc(side.name) + '</b> DOC #' + esc(r.doc) +
+           ' · ' + esc(fmtDate(r.date)) +
+           '<small>Confirmed by ' + esc(r.by) + ' · ' + esc(r.source) +
+           ' · ' + esc(fmtStamp(r.at)) + '</small></p>';
+    });
 
-    var docVal  = draft.doc    != null ? draft.doc    : (d.recorded ? d.recorded.doc : "");
-    var dateVal = draft.date   != null ? draft.date   : (d.recorded ? d.recorded.date : "");
-    var srcVal  = draft.source != null ? draft.source : (d.recorded ? d.recorded.source : SOURCES[0]);
-
-    h += '<div class="fields">' +
-         '<div class="f"><label for="doc-' + esc(id) + '">Doc / instrument #</label>' +
-         '<input class="doc" id="doc-' + esc(id) + '" data-f="doc" placeholder="2026-041877" ' +
-         'value="' + esc(docVal) + '" maxlength="32"></div>' +
-         '<div class="f"><label for="dt-' + esc(id) + '">Recorded on</label>' +
-         '<input type="date" id="dt-' + esc(id) + '" data-f="date" value="' + esc(dateVal) + '"></div>' +
-         '<div class="f"><label for="src-' + esc(id) + '">Proof</label>' +
-         '<select id="src-' + esc(id) + '" data-f="source">' + options(SOURCES, srcVal) + '</select></div>' +
-         '</div>';
+    SIDES.forEach(function(side){
+      var r = rec(d, side.key), k = side.key;
+      var docVal  = draft[k+"Doc"]    != null ? draft[k+"Doc"]    : (r ? r.doc : "");
+      var dateVal = draft[k+"Date"]   != null ? draft[k+"Date"]   : (r ? r.date : "");
+      var srcVal  = draft[k+"Source"] != null ? draft[k+"Source"] : (r ? r.source : SOURCES[0]);
+      h += '<div class="recgrp"' + (r ? ' data-done="1"' : '') + '>' +
+           '<div class="recgrp-h">' + esc(side.name) + ' document' +
+           (r ? '<i>recorded</i>' : '<i class="pending">not recorded</i>') + '</div>' +
+           '<div class="fields">' +
+           '<div class="f"><label for="' + k + 'doc-' + esc(id) + '">Doc / instrument #</label>' +
+           '<input class="doc" id="' + k + 'doc-' + esc(id) + '" data-f="' + k + 'Doc" ' +
+           'placeholder="2026-041877" value="' + esc(docVal) + '" maxlength="32"></div>' +
+           '<div class="f"><label for="' + k + 'dt-' + esc(id) + '">Recorded on</label>' +
+           '<input type="date" id="' + k + 'dt-' + esc(id) + '" data-f="' + k + 'Date" ' +
+           'value="' + esc(dateVal) + '"></div>' +
+           '<div class="f"><label for="' + k + 'src-' + esc(id) + '">Proof</label>' +
+           '<select id="' + k + 'src-' + esc(id) + '" data-f="' + k + 'Source">' +
+           options(SOURCES, srcVal) + '</select></div>' +
+           '</div></div>';
+    });
 
     var moveLabel = bd === "acq" ? "Move to disposition"
                   : bd === "dispo" ? "Mark sold this month" : "Back to disposition";
     h += '<div class="btns">' +
          '<button type="button" class="b go" data-act="record">' +
-         (d.recorded ? "Update recording" : "Confirm recorded") + '</button>' +
+         (anyRec(d) ? "Update recording" : "Confirm recorded") + '</button>' +
          '<button type="button" class="b ghost mid" data-act="move">' + moveLabel + '</button>' +
          '<button type="button" class="b hot" data-act="esc">Escalate</button>' +
          '</div>';
@@ -915,7 +952,12 @@
          '<button type="button" class="tag" data-act="notified" aria-pressed="' +
          (d.notified?"true":"false") + '">Team notified' + (d.notified ? " ✓" : "") + '</button>' +
          '<button type="button" class="tag" data-act="copy">Copy summary</button>' +
-         (d.recorded ? '<button type="button" class="tag danger" data-act="reopen">Reopen</button>' : '') +
+         SIDES.map(function(side){
+           return rec(d, side.key)
+             ? '<button type="button" class="tag danger" data-act="reopen" ' +
+               'data-side="' + side.key + '">Reopen ' + esc(side.name.toLowerCase()) + '</button>'
+             : '';
+         }).join("") +
          '<button type="button" class="tag danger" data-act="rm">Remove</button>' +
          '</div></details>';
 
@@ -1029,23 +1071,58 @@
 
     if(a === "record"){
       if(!needMe()) return;
-      var doc  = row.querySelector('[data-f="doc"]').value.trim();
-      var dt   = row.querySelector('[data-f="date"]').value;
-      var src  = row.querySelector('[data-f="source"]').value;
       var warn = row.querySelector("[data-warn]");
-      if(!doc || !dt || src === SOURCES[0]){
-        warn.textContent = "No doc number, no close. Enter the instrument number, the recording date and how it was proved.";
+      var patch = {recorded:{}}, saved = [], partial = null, blank = 0;
+
+      SIDES.forEach(function(side){
+        var k = side.key;
+        var doc = row.querySelector('[data-f="' + k + 'Doc"]').value.trim();
+        var dt  = row.querySelector('[data-f="' + k + 'Date"]').value;
+        var src = row.querySelector('[data-f="' + k + 'Source"]').value;
+        var filled = (doc ? 1 : 0) + (dt ? 1 : 0) + (src !== SOURCES[0] ? 1 : 0);
+        if(filled === 0){ blank++; return; }
+        if(filled < 3){
+          if(!partial) partial = {side:side, doc:doc, dt:dt, src:src};
+          return;
+        }
+        var prev = rec(d, k);
+        if(prev && prev.doc === doc && prev.date === dt && prev.source === src) return;
+        patch.recorded[k] = {at:new Date().toISOString(), by:who(), doc:doc, date:dt, source:src};
+        saved.push({side:side, doc:doc, dt:dt, src:src, update:!!prev});
+      });
+
+      if(partial){
+        warn.textContent = "The " + partial.side.name.toLowerCase() +
+          " document needs all three: instrument number, recording date and how it was proved.";
         warn.classList.remove("hidden");
-        row.querySelector(!doc ? '[data-f="doc"]' : (!dt ? '[data-f="date"]' : '[data-f="source"]')).focus();
+        row.querySelector('[data-f="' + partial.side.key +
+          (!partial.doc ? 'Doc' : (!partial.dt ? 'Date' : 'Source')) + '"]').focus();
         return;
       }
-      patchDeal(id, mergeInto(
-        {recorded:{at:new Date().toISOString(), by:who(), doc:doc, date:dt, source:src}},
-        entry((d.recorded ? "Recording updated — doc #" : "RECORDED — doc #") + doc +
-              " on " + fmtDate(dt) + ", confirmed by " + who() + " (" + src + ").")));
-      drafts["delete"](id);
-      announce(who() + " recorded " + d.addr + " · doc #" + doc);
-      toast("Recorded — now tell the team");
+      if(!saved.length){
+        if(blank === SIDES.length){
+          warn.textContent = "No doc number, no close. Fill in the buyer document, the seller document, or both.";
+          warn.classList.remove("hidden");
+          row.querySelector('[data-f="buyerDoc"]').focus();
+        }
+        return;
+      }
+      warn.classList.add("hidden");
+
+      saved.forEach(function(x){
+        mergeInto(patch, entry((x.update ? x.side.name + " recording updated — doc #"
+                                         : x.side.name.toUpperCase() + " RECORDED — doc #") +
+          x.doc + " on " + fmtDate(x.dt) + ", confirmed by " + who() + " (" + x.src + ")."));
+      });
+      patchDeal(id, patch);
+      var dr = drafts.get(id) || {};
+      saved.forEach(function(x){
+        delete dr[x.side.key + "Doc"]; delete dr[x.side.key + "Date"]; delete dr[x.side.key + "Source"];
+      });
+      drafts.set(id, dr);
+      announce(who() + " recorded " + d.addr + " · " +
+        saved.map(function(x){ return x.side.name.toLowerCase() + " #" + x.doc; }).join(", "));
+      toast(saved.length > 1 ? "Both documents recorded" : saved[0].side.name + " document recorded");
       return;
     }
 
@@ -1069,11 +1146,20 @@
 
     if(a === "reopen"){
       if(!needMe()) return;
-      if(!confirm("Reopen " + d.addr + "? The doc number comes off the board for everyone.")) return;
-      patchDeal(id, mergeInto({recorded:null},
-        entry("Recording entry pulled by " + who() + " — needs re-verification.")));
-      drafts["delete"](id);
-      announce(who() + " reopened " + d.addr);
+      var sk = btn.dataset.side === "seller" ? "seller" : "buyer";
+      var nm = sk === "seller" ? "Seller" : "Buyer";
+      if(!confirm("Reopen the " + nm.toLowerCase() + " document on " + d.addr +
+                  "? That doc number comes off the board for everyone.")) return;
+      var other = rec(d, sk === "buyer" ? "seller" : "buyer");
+      var np = {recorded:{}};
+      np.recorded[sk] = null;
+      np.recorded[sk === "buyer" ? "seller" : "buyer"] = other || null;
+      patchDeal(id, mergeInto(np,
+        entry(nm + " recording pulled by " + who() + " — needs re-verification.")));
+      var dr2 = drafts.get(id) || {};
+      delete dr2[sk + "Doc"]; delete dr2[sk + "Date"]; delete dr2[sk + "Source"];
+      drafts.set(id, dr2);
+      announce(who() + " reopened the " + nm.toLowerCase() + " document on " + d.addr);
       return;
     }
 
@@ -1185,6 +1271,9 @@
            (body.closingDate ? ", closing " + fmtDate(body.closingDate) : "") + "."};
     createDeal(body);
     ["n-addr","n-price","n-close","n-sale","n-owner","n-escrow"].forEach(function(i){ byId(i).value = ""; });
+    /* reset the exit picker too — it has no safe default, so the next
+       property must not silently inherit this one's strategy */
+    byId("n-exit").innerHTML = exitOptions("");
     showAdd(false);
     announce(who() + " added " + addr + " to " + BOARD_NAME[board]);
   });
@@ -1193,19 +1282,21 @@
   function csv(){
     var head = ["Board","Property address","Lead source","Owner","Title/Escrow","Status",
                 "Purchase price","Sale price","Projected revenue","Closing date","Exit strategy",
-                "Days to close","Recorded","Doc number","Recorded on","Confirmed by","Proof",
+                "Days to close","Both documents recorded",
+                "Buyer doc number","Buyer recorded on","Buyer confirmed by","Buyer proof",
+                "Seller doc number","Seller recorded on","Seller confirmed by","Seller proof",
                 "CRM","Team notified"];
     var q = function(v){ return '"' + String(v == null ? "" : v).replace(/"/g,'""') + '"'; };
     var rows = [head.map(q).join(",")];
     onBoard(board).forEach(function(x){
-      var d = x.d, n = daysToClose(d);
+      var d = x.d, n = daysToClose(d), rb = rec(d,"buyer"), rs = rec(d,"seller");
       rows.push([
         BOARD_NAME[boardOf(d)], d.addr, d.leadSource || "", d.owner || "", d.escrow || "",
         statusOf(d), num(d.purchasePrice), num(d.salePrice), num(d.revenue),
         d.closingDate || "", d.exit || "", n == null ? "" : n,
-        d.recorded ? "yes" : "no",
-        d.recorded ? d.recorded.doc : "", d.recorded ? d.recorded.date : "",
-        d.recorded ? d.recorded.by : "", d.recorded ? d.recorded.source : "",
+        bothRec(d) ? "yes" : "no",
+        rb ? rb.doc : "", rb ? rb.date : "", rb ? rb.by : "", rb ? rb.source : "",
+        rs ? rs.doc : "", rs ? rs.date : "", rs ? rs.by : "", rs ? rs.source : "",
         d.crm ? "yes" : "no", d.notified ? "yes" : "no"
       ].map(q).join(","));
     });
