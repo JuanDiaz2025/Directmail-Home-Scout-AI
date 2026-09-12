@@ -440,13 +440,16 @@
     var p = String(name || "?").trim().split(/\s+/).filter(Boolean);
     return p.length ? (p[0][0] + (p[1] ? p[1][0] : "")).toUpperCase() : "?";
   }
-  /* Exit strategies changed vocabulary; a plain select would snap an older
-     value onto its first option, so carry any unrecognised value as its own
-     option until a person picks a replacement. */
+  /* The pick list is exactly the six strategies — nothing else is offered.
+     A row that is unset, or still carries an older value, shows that as a
+     HIDDEN placeholder option: it displays as the row's current value but
+     never appears among the choices, so the stored value is neither hidden
+     from the reader nor silently rewritten by rendering the row. */
   function exitOptions(cur){
-    var h = '<option value=""' + (cur ? '' : ' selected') + '>— select —</option>';
-    if(cur && EXITS.indexOf(cur) < 0){
-      h += '<option value="' + esc(cur) + '" selected>' + esc(cur) + ' (old)</option>';
+    var h = "";
+    if(!cur || EXITS.indexOf(cur) < 0){
+      h += '<option value="' + esc(cur || "") + '" selected hidden disabled>' +
+           (cur ? esc(cur) + " (old)" : "— select —") + '</option>';
     }
     EXITS.forEach(function(o){
       h += '<option value="' + esc(o) + '"' + (o === cur ? ' selected' : '') +
