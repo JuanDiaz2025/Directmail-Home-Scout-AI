@@ -87,6 +87,56 @@ median $/sf from there.
 **4. Sources.** Every URL you pulled a number from, as markdown links. Anyone
 should be able to click through and check any row.
 
+## Write them into the calculator
+
+Then save the set to the Flip Underwriter's shared comps library, so the tool
+loads it by itself next time anyone types that address:
+
+`https://claude.ai/artifact/4sqQy1WK469fVRtxALWF5c`
+
+Use the `ArtifactData` tool, `action: "set"`, `collection: "compsets"`, and a
+`doc_id` built from the subject address the same way the page builds it, or the
+page will never find your set:
+
+- lowercase, then split on any run of non-alphanumeric characters
+- drop 5-digit and 9-digit ZIP tokens, and the tokens `ca`, `calif`,
+  `california`, `usa`, `us`, `unit`, `apt`
+- map `street`→`st`, `avenue`/`av`→`ave`, `drive`→`dr`, `road`→`rd`,
+  `boulevard`→`blvd`, `court`→`ct`, `lane`→`ln`, `place`→`pl`, `circle`→`cir`,
+  `terrace`→`ter`, `parkway`→`pkwy`, `highway`→`hwy`, `square`→`sq`,
+  `trail`→`trl`, `north`→`n`, `south`→`s`, `east`→`e`, `west`→`w`
+- join the remaining tokens with `-`
+
+So `820 28th St, Santa Rosa, CA 95404` → `820-28th-st-santa-rosa`.
+
+The document body:
+
+```json
+{
+  "subject": "820 28th St, Santa Rosa, CA 95404",
+  "zip": "95404",
+  "city": "SANTA ROSA",
+  "subjectSqft": 1000,
+  "updatedAt": "2026-09-22",
+  "note": "how the set was assembled and anything you could not confirm",
+  "comps": [
+    {"address": "123 Example St, Santa Rosa", "beds": 3, "baths": 2,
+     "sqft": 1450, "price": 712000, "sold": "Aug 14, 2026",
+     "distance": 0.4, "source": "https://..."}
+  ]
+}
+```
+
+`sqft` and `price` are what the page divides to get $/sf, so a row missing either
+is dead weight — where a source publishes price and $/sf but not size, derive the
+size, round it, and append `(sq ft derived)` to that row's address so the reader
+knows. Set `distance` to null rather than guessing; the page shows a chip for
+anything over a mile and can filter on it. `source` must be the URL the row came
+from — the page turns each address into a link to it.
+
+Set `subjectSqft` only when you actually confirmed the subject's size; the page
+applies it to the calculator.
+
 ## Condition
 
 Comps come from sold listings that were, in general, in retail condition. The
