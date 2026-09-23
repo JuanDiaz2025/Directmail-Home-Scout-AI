@@ -1,6 +1,6 @@
 ---
 name: comps
-description: Pull real sold comparables for a property address — 5 or more recent sales within about a mile — and turn them into a median $/sf and an indicated ARV. Use whenever someone gives an address and wants comps, an ARV, a value estimate, or "what's this worth". Output pastes straight into the Flip Underwriter calculator. Never invents a sale.
+description: Pull real sold comparables for a property address — 5 or more recent sales within about a mile — and turn them into a median $/sf and an indicated ARV. Use whenever someone gives an address and wants comps, an ARV, a value estimate, or "what's this worth". Output pastes straight into the Twin Profit Calculator. Never invents a sale.
 ---
 
 # Comps
@@ -75,7 +75,7 @@ and the indicated ARV (median $/sf × subject square footage). Note which comps 
 would throw out and why — a 4,900 sq ft estate does not belong in the median for a
 1,000 sq ft bungalow. Give the ARV as a range, not a single number.
 
-**3. A paste block** for the Flip Underwriter calculator, one comp per line:
+**3. A paste block** for the Twin Profit Calculator, one comp per line:
 
 ```
 123 Example St, 3 bd, 2 ba, 1,450 sqft, sold $712,000, Aug 14 2026, 0.4 mi
@@ -89,7 +89,7 @@ should be able to click through and check any row.
 
 ## Write them into the calculator
 
-Then save the set to the Flip Underwriter's shared comps library, so the tool
+Then save the set to the Twin Profit Calculator's shared comps library, so the tool
 loads it by itself next time anyone types that address:
 
 `https://claude.ai/artifact/4sqQy1WK469fVRtxALWF5c`
