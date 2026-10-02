@@ -920,7 +920,7 @@
     });
 
     var moveLabel = bd === "acq" ? "Move to disposition"
-                  : bd === "dispo" ? "Mark sold this month" : "Back to disposition";
+                  : bd === "dispo" ? "Move to sold this month" : "Back to disposition";
     h += '<div class="btns">' +
          '<button type="button" class="b go" data-act="record">' +
          (anyRec(d) ? "Update recording" : "Confirm recorded") + '</button>' +
@@ -1129,7 +1129,8 @@
     if(a === "move"){
       if(!needMe()) return;
       var to = bd === "acq" ? "dispo" : bd === "dispo" ? "sold" : "dispo";
-      if(!confirm("Move " + d.addr + " to " + BOARD_NAME[to] + "?")) return;
+      if(!confirm("Move " + d.addr + " off " + BOARD_NAME[bd] +
+                  " and onto " + BOARD_NAME[to] + "?")) return;
       var patch = {board:to, status:STATUS[to][0]};
       if(to === "sold"){
         patch.status = "Closed";
