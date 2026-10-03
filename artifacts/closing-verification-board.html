@@ -240,6 +240,8 @@
     min-height:180px;background:var(--panel2);color:var(--paper);border:none;
     border-bottom:2px solid var(--line);padding:14px 16px;resize:vertical;display:block}
   .box textarea:focus{outline:none;background:#20252D}
+  .askmsg{margin:0;padding:16px;font-size:14.5px;font-weight:600;line-height:1.5;
+    border-bottom:2px solid var(--line)}
   .box .go-row{margin:0;padding:12px 16px}
 
   @media (max-width:620px){
@@ -329,6 +331,15 @@
 </div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog class="box" id="askBox" aria-labelledby="askTitle">
+  <h3 id="askTitle">Confirm</h3>
+  <p class="askmsg" id="askMsg"></p>
+  <div class="go-row">
+    <button class="b go" id="askYes">Confirm</button>
+    <button class="b ghost" id="askNo">Cancel</button>
+  </div>
+</dialog>
 
 <dialog class="box" id="copyBox" aria-labelledby="copyTitle">
   <h3 id="copyTitle">Copy this</h3>
@@ -489,6 +500,29 @@
         function(){ showCopyBox(text, title); });
     } else { showCopyBox(text, title); }
   }
+  /* window.confirm is ignored inside the artifact's sandboxed frame, so every
+     confirmation runs through this in-page dialog instead. Resolves true/false. */
+  var askResolve = null;
+  function ask(message, yesLabel, danger){
+    var d = byId("askBox");
+    byId("askMsg").textContent = message;
+    var yes = byId("askYes");
+    yes.textContent = yesLabel || "Confirm";
+    yes.className = "b " + (danger ? "hot" : "go");
+    return new Promise(function(resolve){
+      askResolve = resolve;
+      if(typeof d.showModal === "function") d.showModal(); else d.setAttribute("open","");
+      (danger ? byId("askNo") : yes).focus();
+    });
+  }
+  function askDone(v){
+    var d = byId("askBox");
+    var r = askResolve;
+    askResolve = null;
+    if(typeof d.close === "function"){ if(d.open) d.close(); } else d.removeAttribute("open");
+    if(r) r(v);
+  }
+
   function showCopyBox(text, title){
     var d = byId("copyBox"), ta = byId("copyText");
     byId("copyTitle").textContent = title || "Copy this";
@@ -1129,19 +1163,23 @@
     if(a === "move"){
       if(!needMe()) return;
       var to = bd === "acq" ? "dispo" : bd === "dispo" ? "sold" : "dispo";
-      if(!confirm("Move " + d.addr + " off " + BOARD_NAME[bd] +
-                  " and onto " + BOARD_NAME[to] + "?")) return;
-      var patch = {board:to, status:STATUS[to][0]};
-      if(to === "sold"){
-        patch.status = "Closed";
-        if(num(d.revenue) == null && num(d.salePrice) != null && num(d.purchasePrice) != null){
-          patch.revenue = num(d.salePrice) - num(d.purchasePrice);
+      ask("Move " + d.addr + " off " + BOARD_NAME[bd] + " and onto " + BOARD_NAME[to] + "?",
+          "Move it").then(function(okMove){
+        if(!okMove) return;
+        var cur = deals.get(id);
+        if(!cur) return;
+        var patch = {board:to, status:STATUS[to][0]};
+        if(to === "sold"){
+          patch.status = "Closed";
+          if(num(cur.revenue) == null && num(cur.salePrice) != null && num(cur.purchasePrice) != null){
+            patch.revenue = num(cur.salePrice) - num(cur.purchasePrice);
+          }
         }
-      }
-      patchDeal(id, mergeInto(patch,
-        entry("Moved to " + BOARD_NAME[to] + " by " + who() + ".")));
-      announce(who() + " moved " + d.addr + " to " + BOARD_NAME[to]);
-      toast("Moved to " + BOARD_NAME[to]);
+        patchDeal(id, mergeInto(patch,
+          entry("Moved to " + BOARD_NAME[to] + " by " + who() + ".")));
+        announce(who() + " moved " + cur.addr + " to " + BOARD_NAME[to]);
+        toast("Moved to " + BOARD_NAME[to]);
+      });
       return;
     }
 
@@ -1149,18 +1187,23 @@
       if(!needMe()) return;
       var sk = btn.dataset.side === "seller" ? "seller" : "buyer";
       var nm = sk === "seller" ? "Seller" : "Buyer";
-      if(!confirm("Reopen the " + nm.toLowerCase() + " document on " + d.addr +
-                  "? That doc number comes off the board for everyone.")) return;
-      var other = rec(d, sk === "buyer" ? "seller" : "buyer");
-      var np = {recorded:{}};
-      np.recorded[sk] = null;
-      np.recorded[sk === "buyer" ? "seller" : "buyer"] = other || null;
-      patchDeal(id, mergeInto(np,
-        entry(nm + " recording pulled by " + who() + " — needs re-verification.")));
-      var dr2 = drafts.get(id) || {};
-      delete dr2[sk + "Doc"]; delete dr2[sk + "Date"]; delete dr2[sk + "Source"];
-      drafts.set(id, dr2);
-      announce(who() + " reopened the " + nm.toLowerCase() + " document on " + d.addr);
+      ask("Reopen the " + nm.toLowerCase() + " document on " + d.addr +
+          "? That doc number comes off the board for everyone.",
+          "Reopen it", true).then(function(okRe){
+        if(!okRe) return;
+        var cur = deals.get(id);
+        if(!cur) return;
+        var other = rec(cur, sk === "buyer" ? "seller" : "buyer");
+        var np = {recorded:{}};
+        np.recorded[sk] = null;
+        np.recorded[sk === "buyer" ? "seller" : "buyer"] = other || null;
+        patchDeal(id, mergeInto(np,
+          entry(nm + " recording pulled by " + who() + " — needs re-verification.")));
+        var dr2 = drafts.get(id) || {};
+        delete dr2[sk + "Doc"]; delete dr2[sk + "Date"]; delete dr2[sk + "Source"];
+        drafts.set(id, dr2);
+        announce(who() + " reopened the " + nm.toLowerCase() + " document on " + cur.addr);
+      });
       return;
     }
 
@@ -1205,9 +1248,13 @@
       return;
     }
     if(a === "rm"){
-      if(!confirm("Remove " + d.addr + " from the board for everyone? The log goes with it.")) return;
-      dropDeal(id);
-      announce(who() + " removed " + d.addr);
+      var gone = d.addr;
+      ask("Remove " + gone + " from the board for everyone? The log goes with it, and this cannot be undone.",
+          "Remove it", true).then(function(okRm){
+        if(!okRm) return;
+        dropDeal(id);
+        announce(who() + " removed " + gone);
+      });
       return;
     }
   });
@@ -1316,6 +1363,11 @@
         });
     } else { showCopyBox(text, "CSV — copy it out"); }
   });
+
+  byId("askYes").addEventListener("click", function(){ askDone(true); });
+  byId("askNo").addEventListener("click", function(){ askDone(false); });
+  byId("askBox").addEventListener("cancel", function(e){ e.preventDefault(); askDone(false); });
+  byId("askBox").addEventListener("close", function(){ if(askResolve) askDone(false); });
 
   byId("copyClose").addEventListener("click", function(){
     var d = byId("copyBox");
